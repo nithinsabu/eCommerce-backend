@@ -11,7 +11,7 @@ const generateToken = (id) => {
 
 const userLogin = async (req, res) => {
     const user = await User.findOne({email: req.body.email})
-    if (user.length==0){
+    if (!user){
         res.status(400).json({error:"Email not registered"})
     }else{
         try{
@@ -24,7 +24,7 @@ const userLogin = async (req, res) => {
                     token : token,
                     favouriteItems : user.favorites,
                     email: user.email,
-                    phoneNumber: user.phone,
+                    phone: user.phone,
                     paymentMethods: user.paymentMethods
                 }
                 const cart = await Cart.findOne({user : user._id})
@@ -92,16 +92,16 @@ const updateDetails = async(req, res) => {
     const token = req.headers.authorization.split(' ')[1]
     const field = Object.keys(req.query)[0]
     const value = req.query[field]
-    console.log(field)
-    console.log(value)
-    console.log(token)
+    // console.log(field)
+    // console.log(value)
+    // console.log(token)
     // console.log(req.headers)
     try{
         const decoded = jwt.verify(token, process.env.JWT_SECRET)
-        console.log(decoded)
+        // console.log(decoded)
         const objectId = new mongoose.Types.ObjectId(decoded.id)
         const updateResult = await User.findOneAndUpdate({_id: objectId}, {[field]: value})
-        console.log(updateResult)
+        // console.log(updateResult)
         res.json({success: true})
     }catch(err){
         console.log(err)
