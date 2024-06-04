@@ -11,6 +11,7 @@ const generateToken = (id) => {
 
 const userLogin = async (req, res) => {
     const user = await User.findOne({email: req.body.email})
+    console.log(req.body.email)
     if (!user){
         res.status(400).json({error:"Email not registered"})
     }else{
@@ -36,7 +37,7 @@ const userLogin = async (req, res) => {
                 res.status(401).json({error:"Incorrect Password"})
             }
         }catch{
-            res.status(500).json({error: "Error in signup"})
+            res.status(500).json({error: "Error in signin"})
         }
     }
     console.log(req.body.email, req.body.password)
@@ -63,7 +64,10 @@ const userSignup = async (req, res) => {
                 addresses :  user.addresses,
                 token : token,
                 favouriteItems : user.favorites,
-                orders: []
+                orders: [],
+                email: user.email,
+                phone: user.phone,
+                paymentMethods: user.paymentMethods
             }
             res.status(201).json({success: true, user: response_user, basket: []})
         }catch{
@@ -90,24 +94,61 @@ const getDetails = async (req, res) => {
 
 const updateDetails = async(req, res) => {
     const token = req.headers.authorization.split(' ')[1]
-    const field = Object.keys(req.query)[0]
-    const value = req.query[field]
-    // console.log(field)
-    // console.log(value)
-    // console.log(token)
-    // console.log(req.headers)
+    const fields = Object.keys(req.query)
+    const updateObject = {}
+    for (const field of fields){
+        updateObject[field] = req.query[field]
+    }
     try{
         const decoded = jwt.verify(token, process.env.JWT_SECRET)
         // console.log(decoded)
         const objectId = new mongoose.Types.ObjectId(decoded.id)
-        const updateResult = await User.findOneAndUpdate({_id: objectId}, {[field]: value})
+        const updateResult = await User.findOneAndUpdate({_id: objectId}, updateObject)
         // console.log(updateResult)
-        res.json({success: true})
+        res.status(201).json({success: true})
     }catch(err){
         console.log(err)
-        res.json({error: 'Error updating'})
+        res.status(500).json({error: 'Error updating'})
     }
 
 }
 
-module.exports = {userLogin, userSignup, getDetails, updateDetails}
+const editAddress = async(req, res) => {
+    try{
+        const token = req.headers.authorization.split(' ')[1]
+        const field = req.query['request']
+        const decoded = jwt.verify(token, process.env.JWT_SECRET)
+        const objectId = new mongoose.Types.ObjectId(decoded.id)
+        if (field==='add'){
+            const user = await User.findOne({_id: objectId})
+            // console.log(req.body)
+            user.addresses.push(req.body.address)
+            await user.save()
+            res.status(201).json({success: true})
+        }
+        if (field==='update'){
+            console.log(req.body.address)
+            const user = await User.findOne({_id: objectId})
+            // console.log(req.body)
+            const indexToUpdate = user.addresses.findIndex(obj => obj.id === req.body.address.id)
+            if (indexToUpdate===-1) throw new Error("Error in updating")
+            user.addresses[indexToUpdate] = {...user.addresses[indexToUpdate], ...req.body.address}
+            await user.save()
+            res.status(201).json({success: true})
+        }
+        if (field==='delete'){
+            const user = await User.findOne({_id: objectId})
+            const idToDelete = req.query['id']
+            const indexToDelete = user.addresses.findIndex(obj => obj.id === idToDelete)
+            if (indexToDelete===-1) throw new Error("Error in updating")
+            user.addresses.splice(indexToDelete, 1)
+            await user.save()
+            res.status(204).json({success: true})
+        }
+    }catch(err){
+        console.log(err)
+        res.status(500).json({error: 'Error updating'})
+    }
+    // res.status(500).json({error:'er'})
+}
+module.exports = {userLogin, userSignup, getDetails, updateDetails, editAddress}

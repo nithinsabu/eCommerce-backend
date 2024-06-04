@@ -30,6 +30,13 @@ const userSchema = new mongoose.Schema({
   addresses: {
     type: [
       {
+        id: {
+          type: String,
+          required: true
+        },
+        name: {
+          type: String
+        },
         street: {
           type: String,
           // required: true
@@ -46,6 +53,9 @@ const userSchema = new mongoose.Schema({
           type: String,
           // required: true
         },
+        country: {
+          type: String
+        }
       },
     ],
     default: [],
@@ -82,6 +92,10 @@ const userSchema = new mongoose.Schema({
     ],
     default: [],
   },
+  currentAddress: {
+    type: Number,
+    default: -1,
+  }
 });
 
 userSchema.pre("save", async function (next) {
