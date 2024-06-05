@@ -147,6 +147,7 @@ const editAddress = async(req, res) => {
             if (indexToDelete===user.currentAddress){
                 user.currentAddress = -1
             }
+            
             await user.save()
             res.status(204).json({success: true})
         }
