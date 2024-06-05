@@ -26,7 +26,8 @@ const userLogin = async (req, res) => {
                     favouriteItems : user.favorites,
                     email: user.email,
                     phone: user.phone,
-                    paymentMethods: user.paymentMethods
+                    paymentMethods: user.paymentMethods,
+                    currentAddress: user.currentAddress
                 }
                 const cart = await Cart.findOne({user : user._id})
                 const basket = cart? cart.products: []
@@ -67,7 +68,8 @@ const userSignup = async (req, res) => {
                 orders: [],
                 email: user.email,
                 phone: user.phone,
-                paymentMethods: user.paymentMethods
+                paymentMethods: user.paymentMethods,
+                currentAddress: -1
             }
             res.status(201).json({success: true, user: response_user, basket: []})
         }catch{
@@ -142,8 +144,18 @@ const editAddress = async(req, res) => {
             const indexToDelete = user.addresses.findIndex(obj => obj.id === idToDelete)
             if (indexToDelete===-1) throw new Error("Error in updating")
             user.addresses.splice(indexToDelete, 1)
+            if (indexToDelete===user.currentAddress){
+                user.currentAddress = -1
+            }
             await user.save()
             res.status(204).json({success: true})
+        }
+        if (field==='currentaddress'){
+            const addressId = req.query['address']
+            const user = await User.findOne({_id: objectId})
+            user.currentAddress = user.addresses.findIndex(obj => obj.id === addressId)
+            await user.save()
+            res.status(201).json({success: true})
         }
     }catch(err){
         console.log(err)
