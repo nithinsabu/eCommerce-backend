@@ -95,6 +95,10 @@ const userSchema = new mongoose.Schema({
   currentAddress: {
     type: Number,
     default: -1,
+  },
+  isVerified: {
+    type: Boolean,
+    default: false,
   }
 });
 

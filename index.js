@@ -3,6 +3,7 @@ const dotenv = require('dotenv')
 const mongoose = require('mongoose')
 const cors = require('cors')
 const userRouter = require('./routes/user.js')
+const productRouter = require('./routes/product.js')
 const dbConnect = require('./dbConnect.js')
 
 
@@ -15,6 +16,7 @@ app.use(cors())
 app.use(express.json())
 
 app.use('/user', userRouter)
+app.use('/product', productRouter)
 
 app.listen(process.env.PORT, () => {
     console.log("listening on port "+process.env.PORT)

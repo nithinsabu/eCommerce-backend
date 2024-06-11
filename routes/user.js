@@ -1,4 +1,4 @@
-const { userLogin, userSignup, getDetails, updateDetails, editAddress } = require('../controllers/userLogin.js');
+const { userLogin, userSignup, getDetails, updateDetails, editAddress } = require('../controllers/userController.js');
 const express = require('express')
 
 const router = express.Router()
