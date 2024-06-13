@@ -60,7 +60,7 @@ const userSchema = new mongoose.Schema({
     ],
     default: [],
   },
-  favorites: {
+  favourites: {
     type: [
       {
         type: mongoose.Schema.Types.ObjectId,
