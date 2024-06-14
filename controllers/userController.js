@@ -116,7 +116,7 @@ const userSignup = async (req, res) => {
         paymentMethods: user.paymentMethods,
         currentAddress: -1,
       };
-      res.status(201).json({ success: true, user: response_user, basket: basket.products });
+      res.status(201).json({ success: true, user: response_user, basket: req.body.basket });
     } catch {
       res.status(500).json({ error: "Error with database" });
     }
@@ -229,6 +229,7 @@ const editBasket = async (req, res) => {
     if (!cart) throw new Error("Server not responding");
     const product = new mongoose.Types.ObjectId(req.query["product"]);
     const quantity = Number(req.query["quantity"]);
+    console.log(cart.products)
     const index = cart.products.findIndex(
       (p) => p.product.toString() === product.toString()
     );
@@ -280,6 +281,11 @@ const editFavourites = async (req, res) => {
     }
   }
 };
+
+const checkout = asyncHandler(async(req, res) => {
+  const basket = req.body.basket
+
+})
 module.exports = {
   userLogin,
   userSignup,
