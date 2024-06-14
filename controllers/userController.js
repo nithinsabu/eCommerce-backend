@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const Cart = require("../models/cart.js");
 const Order = require("../models/order.js");
 const mongoose = require("mongoose");
+const asyncHandler = require('express-async-handler')
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: "10d",
@@ -78,14 +79,30 @@ const userSignup = async (req, res) => {
     res.status(400).json({ error: "Email already in use" });
   } else {
     try {
+      const favourites = []
+      if(req.body.favouriteItems){
+        for (const item of req.body.favouriteItems){
+          if (!favourites.some(i => i.toString()===item.toString())){
+            favourites.push(new mongoose.Types.ObjectId(item))
+          }
+        }
+      }
+      const productsInBasket = []
+      if (req.body.basket){
+        for (const item of req.body.basket){
+          productsInBasket.push({product: item.id, quantity: item.quantity})
+        }
+      }
       const user = await User.create({
         name: req.body.name,
         email: req.body.email,
         password: req.body.password,
         phone: req.body.phone,
+        favourites: favourites,
       });
       const basket = await Cart.create({
         user: user._id,
+        products: productsInBasket,
       });
       const token = generateToken(user._id);
       const response_user = {
@@ -99,7 +116,7 @@ const userSignup = async (req, res) => {
         paymentMethods: user.paymentMethods,
         currentAddress: -1,
       };
-      res.status(201).json({ success: true, user: response_user, basket: [] });
+      res.status(201).json({ success: true, user: response_user, basket: basket.products });
     } catch {
       res.status(500).json({ error: "Error with database" });
     }
