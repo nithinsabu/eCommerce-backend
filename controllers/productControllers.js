@@ -34,8 +34,8 @@ const fetchProducts = async (req, res) => {
     //     resolve(3)
     //   }, 5000)
     // })
-    console.log(products[0])
-    console.log('Products fetched')
+    // console.log(products[0])
+    // console.log('Products fetched')
     res.status(200).send(products)
 }
 

@@ -19,6 +19,26 @@ const userLogin = async (req, res) => {
       const result = await user.matchPassword(req.body.password);
       if (result) {
         const token = generateToken(user._id);
+        if(req.body.favouriteItems){
+          for (const item of req.body.favouriteItems){
+            if (!user.favourites.some(i => i.toString()===item.toString())){
+              user.favourites.push(new mongoose.Types.ObjectId(item))
+            }
+          }
+          await user.save()
+        }
+        if (req.body.basket){
+          const cart = await Cart.findOne({user: user._id})
+          for (const item of req.body.basket){
+            if (!cart.products.some(i => i.product.toString()===item.id.toString())){
+              cart.products.push({product: new mongoose.Types.ObjectId(item.id), quantity: item.quantity})
+            }else{
+              const index = cart.products.findIndex(obj => obj.product.toString()===item.id.toString())
+              cart.products[index].quantity = item.quantity
+            }
+            await cart.save()
+          }
+        }
         const response_user = {
           displayName: user.name,
           addresses: user.addresses,
@@ -29,8 +49,13 @@ const userLogin = async (req, res) => {
           paymentMethods: user.paymentMethods,
           currentAddress: user.currentAddress,
         };
-        const cart = await Cart.findOne({ user: user._id });
+        const cart = await Cart.findOne({ user: user._id }).lean();
         const basket = cart ? cart.products : [];
+        for (let i = 0; i<basket.length; ++i){
+          basket[i].id = basket[i].product.toString()
+          delete basket[i].product
+        }
+        // console.log(basket)
         const orders = await Order.find({ user: user._id });
         response_user.orders = orders;
         res
@@ -39,7 +64,8 @@ const userLogin = async (req, res) => {
       } else {
         res.status(401).json({ error: "Incorrect Password" });
       }
-    } catch {
+    } catch (e){
+      console.log(e)
       res.status(500).json({ error: "Error in signin" });
     }
   }
@@ -82,7 +108,6 @@ const userSignup = async (req, res) => {
 };
 
 const getDetails = async (req, res) => {
-  console.log(1);
   const token = req.headers.authorization.split(" ")[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -133,7 +158,7 @@ const editAddress = async (req, res) => {
       res.status(201).json({ success: true });
     }
     if (field === "update") {
-      console.log(req.body.address);
+      // console.log(req.body.address);
       const user = await User.findOne({ _id: objectId });
       // console.log(req.body)
       const indexToUpdate = user.addresses.findIndex(
