@@ -58,10 +58,26 @@ const userLogin = async (req, res) => {
         }
         // console.log(basket)
         const orders = await Order.find({ user: user._id });
-        response_user.orders = orders;
+        // response_user.orders = orders;
+        const frontendOrders = []
+        for (const order of orders){
+          const items = []
+          for (const item of order.cartItems){
+            items.push({
+              id: item.product,
+              quantity: item.quantity
+            })
+          }
+          frontendOrders.push({
+            id: order.id,
+            items: items,
+            date: order.orderDate,
+            total: order.orderAmount
+          })
+        }
         res
           .status(200)
-          .json({ success: true, user: response_user, basket: basket });
+          .json({ success: true, user: response_user, orders: frontendOrders, basket: basket });
       } else {
         res.status(401).json({ error: "Incorrect Password" });
       }
@@ -110,13 +126,13 @@ const userSignup = async (req, res) => {
         addresses: user.addresses,
         token: token,
         favouriteItems: user.favourites,
-        orders: [],
+        // orders: [],
         email: user.email,
         phone: user.phone,
         paymentMethods: user.paymentMethods,
         currentAddress: -1,
       };
-      res.status(201).json({ success: true, user: response_user, basket: req.body.basket });
+      res.status(201).json({ success: true, user: response_user, orders: [], basket: req.body.basket });
     } catch {
       res.status(500).json({ error: "Error with database" });
     }
@@ -283,8 +299,39 @@ const editFavourites = async (req, res) => {
 };
 
 const checkout = asyncHandler(async(req, res) => {
-  const basket = req.body.basket
-
+  try{
+    const basket = req.body.basket
+    const orderAmount = req.body.orderAmount
+    console.log(orderAmount)
+    for (let i = 0; i<basket.length; ++i){
+      basket[i].product = new mongoose.Types.ObjectId(basket[i].id)
+      delete basket[i].id
+    }
+    const token = req.headers.authorization.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(new mongoose.Types.ObjectId(decoded.id));
+    if (!user) throw new Error("Server not responding");
+    if (user.currentAddress<0){
+      throw new Error('Address not selected')
+    }
+    const shippingAddress = user.addresses[user.currentAddress]
+    await Order.create({
+      cartItems: basket,
+      user: user._id,
+      shippingAddress: shippingAddress,
+      paymentDetails: "",
+      orderAmount: orderAmount
+    })
+    res.status(201).json({success: true})
+  }catch{
+    console.log(e);
+    if (e.message === "Server not responding" || e.message === "Address not selected") {
+      res.status(500).json({ error: e.message });
+    } else {
+      res.status(401).json({ error: "Unauthorized access" });
+    }
+  }
+  
 })
 module.exports = {
   userLogin,
@@ -294,4 +341,5 @@ module.exports = {
   editAddress,
   editBasket,
   editFavourites,
+  checkout
 };
