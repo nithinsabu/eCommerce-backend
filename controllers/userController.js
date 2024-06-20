@@ -98,7 +98,7 @@ const userSignup = async (req, res) => {
   } else {
     try {
       const favourites = []
-      if(req.body.favouriteItems){
+      if(req.body.favouriteItems && !req.body.isSeller){
         for (const item of req.body.favouriteItems){
           if (!favourites.some(i => i.toString()===item.toString())){
             favourites.push(new mongoose.Types.ObjectId(item))
@@ -117,11 +117,12 @@ const userSignup = async (req, res) => {
         password: req.body.password,
         phone: req.body.phone,
         favourites: favourites,
+        role: req.body.isSeller? 'seller': 'buyer',
       });
-      const basket = await Cart.create({
+      const basket = !req.body.isSeller? await Cart.create({
         user: user._id,
         products: productsInBasket,
-      });
+      }): [];
       const token = generateToken(user._id);
       const response_user = {
         displayName: user.name,
