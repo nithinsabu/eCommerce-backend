@@ -2,10 +2,10 @@ const User = require("../models/user.js");
 const jwt = require("jsonwebtoken");
 const Cart = require("../models/cart.js");
 const Order = require("../models/order.js");
-const Product = require('../models/product.js')
-const Review = require('../models/review.js')
+const Product = require("../models/product.js");
+const Review = require("../models/review.js");
 const mongoose = require("mongoose");
-const asyncHandler = require('express-async-handler')
+const asyncHandler = require("express-async-handler");
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: "10d",
@@ -15,31 +15,46 @@ const generateToken = (id) => {
 const userLogin = async (req, res) => {
   const user = await User.findOne({ email: req.body.email });
   console.log(req.body.email);
-  if (!user) {
+  if (
+    !user ||
+    (req.body.isSeller && user.role !== "seller") ||
+    (user.role === "seller" && !req.body.isSeller)
+  ) {
     res.status(400).json({ error: "Email not registered" });
   } else {
     try {
       const result = await user.matchPassword(req.body.password);
       if (result) {
         const token = generateToken(user._id);
-        if(req.body.favouriteItems){
-          for (const item of req.body.favouriteItems){
-            if (!user.favourites.some(i => i.toString()===item.toString())){
-              user.favourites.push(new mongoose.Types.ObjectId(item))
+        if (req.body.favouriteItems) {
+          for (const item of req.body.favouriteItems) {
+            if (
+              !user.favourites.some((i) => i.toString() === item.toString())
+            ) {
+              user.favourites.push(new mongoose.Types.ObjectId(item));
             }
           }
-          await user.save()
+          await user.save();
         }
-        if (req.body.basket){
-          const cart = await Cart.findOne({user: user._id})
-          for (const item of req.body.basket){
-            if (!cart.products.some(i => i.product.toString()===item.id.toString())){
-              cart.products.push({product: new mongoose.Types.ObjectId(item.id), quantity: item.quantity})
-            }else{
-              const index = cart.products.findIndex(obj => obj.product.toString()===item.id.toString())
-              cart.products[index].quantity = item.quantity
+        if (req.body.basket) {
+          const cart = await Cart.findOne({ user: user._id });
+          for (const item of req.body.basket) {
+            if (
+              !cart.products.some(
+                (i) => i.product.toString() === item.id.toString()
+              )
+            ) {
+              cart.products.push({
+                product: new mongoose.Types.ObjectId(item.id),
+                quantity: item.quantity,
+              });
+            } else {
+              const index = cart.products.findIndex(
+                (obj) => obj.product.toString() === item.id.toString()
+              );
+              cart.products[index].quantity = item.quantity;
             }
-            await cart.save()
+            await cart.save();
           }
         }
         const response_user = {
@@ -52,39 +67,56 @@ const userLogin = async (req, res) => {
           paymentMethods: user.paymentMethods,
           currentAddress: user.currentAddress,
         };
-        const cart = await Cart.findOne({ user: user._id }).lean();
+        if (req.body.isSeller) {
+          delete response_user.favouriteItems;
+        }
+        const cart = req.body.isSeller
+          ? await Cart.findOne({ user: user._id }).lean()
+          : [];
         const basket = cart ? cart.products : [];
-        for (let i = 0; i<basket.length; ++i){
-          basket[i].id = basket[i].product.toString()
-          delete basket[i].product
+        for (let i = 0; i < basket.length; ++i) {
+          basket[i].id = basket[i].product.toString();
+          delete basket[i].product;
         }
         // console.log(basket)
-        const orders = await Order.find({ user: user._id });
+        const orders = req.body.isSeller
+          ? await Order.find({ user: user._id })
+          : [];
         // response_user.orders = orders;
-        const frontendOrders = []
-        for (const order of orders){
-          const items = []
-          for (const item of order.cartItems){
+        const frontendOrders = [];
+        for (const order of orders) {
+          const items = [];
+          for (const item of order.cartItems) {
             items.push({
               id: item.product,
-              quantity: item.quantity
-            })
+              quantity: item.quantity,
+            });
           }
           frontendOrders.push({
             id: order.id,
             items: items,
             date: order.orderDate,
-            total: order.orderAmount
-          })
+            total: order.orderAmount,
+          });
         }
-        res
-          .status(200)
-          .json({ success: true, user: response_user, orders: frontendOrders, basket: basket });
+        if (req.body.isSeller) {
+          const products = await Product.find({seller: user._id})
+          res.status(200).json({ success: true, user: response_user , products: products});
+        } else {
+          res
+            .status(200)
+            .json({
+              success: true,
+              user: response_user,
+              orders: frontendOrders,
+              basket: basket,
+            });
+        }
       } else {
         res.status(401).json({ error: "Incorrect Password" });
       }
-    } catch (e){
-      console.log(e)
+    } catch (e) {
+      console.log(e);
       res.status(500).json({ error: "Error in signin" });
     }
   }
@@ -97,18 +129,18 @@ const userSignup = async (req, res) => {
     res.status(400).json({ error: "Email already in use" });
   } else {
     try {
-      const favourites = []
-      if(req.body.favouriteItems && !req.body.isSeller){
-        for (const item of req.body.favouriteItems){
-          if (!favourites.some(i => i.toString()===item.toString())){
-            favourites.push(new mongoose.Types.ObjectId(item))
+      const favourites = [];
+      if (req.body.favouriteItems && !req.body.isSeller) {
+        for (const item of req.body.favouriteItems) {
+          if (!favourites.some((i) => i.toString() === item.toString())) {
+            favourites.push(new mongoose.Types.ObjectId(item));
           }
         }
       }
-      const productsInBasket = []
-      if (req.body.basket){
-        for (const item of req.body.basket){
-          productsInBasket.push({product: item.id, quantity: item.quantity})
+      const productsInBasket = [];
+      if (req.body.basket) {
+        for (const item of req.body.basket) {
+          productsInBasket.push({ product: item.id, quantity: item.quantity });
         }
       }
       const user = await User.create({
@@ -118,12 +150,14 @@ const userSignup = async (req, res) => {
         phone: req.body.phone,
         // addresses: [req.body.address],
         favourites: favourites,
-        role: req.body.isSeller? 'seller': 'buyer',
+        role: req.body.isSeller ? "seller" : "buyer",
       });
-      const basket = !req.body.isSeller? await Cart.create({
-        user: user._id,
-        products: productsInBasket,
-      }): [];
+      const basket = !req.body.isSeller
+        ? await Cart.create({
+            user: user._id,
+            products: productsInBasket,
+          })
+        : [];
       const token = generateToken(user._id);
       const response_user = {
         displayName: user.name,
@@ -136,13 +170,21 @@ const userSignup = async (req, res) => {
         paymentMethods: user.paymentMethods,
         currentAddress: -1,
       };
-      if (req.body.isSeller){
-        res.status(201).json({success: true, user: response_user})
-        return
+      if (req.body.isSeller) {
+        delete response_user.favouriteItems;
+        res.status(201).json({ success: true, user: response_user });
+        return;
       }
-      res.status(201).json({ success: true, user: response_user, orders: [], basket: req.body.basket });
-    } catch(e) {
-      console.log(e)
+      res
+        .status(201)
+        .json({
+          success: true,
+          user: response_user,
+          orders: [],
+          basket: req.body.basket,
+        });
+    } catch (e) {
+      console.log(e);
       res.status(500).json({ error: "Error with database" });
     }
   }
@@ -254,19 +296,21 @@ const editBasket = async (req, res) => {
     if (!cart) throw new Error("Server not responding");
     const product = new mongoose.Types.ObjectId(req.query["product"]);
     const quantity = Number(req.query["quantity"]);
-    console.log(cart.products)
+    console.log(cart.products);
     const index = cart.products.findIndex(
       (p) => p.product.toString() === product.toString()
     );
     // console.log(cart.products[0].product.toString()===product.toString(), index)
-    if (quantity>0){
-    if (index === -1) {
+    if (quantity > 0) {
+      if (index === -1) {
         cart.products.push({ product: product, quantity: quantity });
       } else {
         cart.products[index].quantity = quantity;
       }
-    }else{
-      cart.products = cart.products.filter(obj => obj.product.toString()!==product.toString())
+    } else {
+      cart.products = cart.products.filter(
+        (obj) => obj.product.toString() !== product.toString()
+      );
     }
     await cart.save();
     res.status(201).json({ success: true });
@@ -288,12 +332,16 @@ const editFavourites = async (req, res) => {
     const product = new mongoose.Types.ObjectId(req.query["product"]);
     const action = req.query["request"];
     if (action === "add") {
-      if (!user.favourites.some((obj) => obj.toString() === product.toString())) {
+      if (
+        !user.favourites.some((obj) => obj.toString() === product.toString())
+      ) {
         user.favourites.push(product);
       }
     }
     if (action === "remove") {
-      user.favourites = user.favourites.filter((obj) => obj.toString() !== product.toString());
+      user.favourites = user.favourites.filter(
+        (obj) => obj.toString() !== product.toString()
+      );
     }
     await user.save();
     res.status(201).json({ success: true });
@@ -307,82 +355,87 @@ const editFavourites = async (req, res) => {
   }
 };
 
-const checkout = asyncHandler(async(req, res) => {
-  try{
-    const basket = req.body.basket
-    const orderAmount = req.body.orderAmount
-    console.log(orderAmount)
-    for (let i = 0; i<basket.length; ++i){
-      basket[i].product = new mongoose.Types.ObjectId(basket[i].id)
-      delete basket[i].id
+const checkout = asyncHandler(async (req, res) => {
+  try {
+    const basket = req.body.basket;
+    const orderAmount = req.body.orderAmount;
+    console.log(orderAmount);
+    for (let i = 0; i < basket.length; ++i) {
+      basket[i].product = new mongoose.Types.ObjectId(basket[i].id);
+      delete basket[i].id;
     }
     const token = req.headers.authorization.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(new mongoose.Types.ObjectId(decoded.id));
     if (!user) throw new Error("Server not responding");
-    if (user.currentAddress<0){
-      throw new Error('Address not selected')
+    if (user.currentAddress < 0) {
+      throw new Error("Address not selected");
     }
-    const shippingAddress = user.addresses[user.currentAddress]
+    const shippingAddress = user.addresses[user.currentAddress];
     await Order.create({
       cartItems: basket,
       user: user._id,
       shippingAddress: shippingAddress,
       paymentDetails: "",
-      orderAmount: orderAmount
-    })
-    res.status(201).json({success: true})
-  }catch{
+      orderAmount: orderAmount,
+    });
+    res.status(201).json({ success: true });
+  } catch {
     console.log(e);
-    if (e.message === "Server not responding" || e.message === "Address not selected") {
+    if (
+      e.message === "Server not responding" ||
+      e.message === "Address not selected"
+    ) {
       res.status(500).json({ error: e.message });
     } else {
       res.status(401).json({ error: "Unauthorized access" });
     }
   }
-  
-})
+});
 
 const editReview = asyncHandler(async (req, res) => {
-  try{
+  try {
     const token = req.headers.authorization.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const reviewer = await User.findById(new mongoose.Types.ObjectId(decoded.id));
-    
-    const product = await Product.findOne({_id: new mongoose.Types.ObjectId(req.query['product'])})
-    if (!reviewer || !product){
-      throw new Error('Error with server')
+    const reviewer = await User.findById(
+      new mongoose.Types.ObjectId(decoded.id)
+    );
+
+    const product = await Product.findOne({
+      _id: new mongoose.Types.ObjectId(req.query["product"]),
+    });
+    if (!reviewer || !product) {
+      throw new Error("Error with server");
     }
-    let oldReview = false
-    for (const rev of product.reviews){
-      const review = await Review.findbyId(rev)
-      if (review.reviewer.toString() === reviewer._id.toString()){
-        oldReview = review
+    let oldReview = false;
+    for (const rev of product.reviews) {
+      const review = await Review.findbyId(rev);
+      if (review.reviewer.toString() === reviewer._id.toString()) {
+        oldReview = review;
       }
     }
-    if (oldReview){
-      oldReview.comment = req.body.comment
-      oldReview.rating = req.body.rating
-      oldReview.date = Date.now()
-    }else{
+    if (oldReview) {
+      oldReview.comment = req.body.comment;
+      oldReview.rating = req.body.rating;
+      oldReview.date = Date.now();
+    } else {
       oldReview = Review.create({
         reviewer: reviewer._id,
         comment: req.body.comment,
         rating: req.body.rating,
         date: Date.now(),
-      })
+      });
     }
-    await oldReview.save()
-    res.status(201).json({success: true})
-
-  }catch(e){
-    if (e.message==='Error with server'){
-      res.status(500).json({error: e.message})
-      return
+    await oldReview.save();
+    res.status(201).json({ success: true });
+  } catch (e) {
+    if (e.message === "Error with server") {
+      res.status(500).json({ error: e.message });
+      return;
     }
-    res.status(401).json({error: 'Unauthorized access'})
+    res.status(401).json({ error: "Unauthorized access" });
   }
-})
+});
 module.exports = {
   userLogin,
   userSignup,
@@ -391,5 +444,5 @@ module.exports = {
   editAddress,
   editBasket,
   editFavourites,
-  checkout
+  checkout,
 };
