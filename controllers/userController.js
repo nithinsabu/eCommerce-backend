@@ -116,6 +116,7 @@ const userSignup = async (req, res) => {
         email: req.body.email,
         password: req.body.password,
         phone: req.body.phone,
+        // addresses: [req.body.address],
         favourites: favourites,
         role: req.body.isSeller? 'seller': 'buyer',
       });
@@ -126,7 +127,7 @@ const userSignup = async (req, res) => {
       const token = generateToken(user._id);
       const response_user = {
         displayName: user.name,
-        addresses: user.addresses,
+        addresses: [user.addresses],
         token: token,
         favouriteItems: user.favourites,
         // orders: [],
@@ -135,8 +136,13 @@ const userSignup = async (req, res) => {
         paymentMethods: user.paymentMethods,
         currentAddress: -1,
       };
+      if (req.body.isSeller){
+        res.status(201).json({success: true, user: response_user})
+        return
+      }
       res.status(201).json({ success: true, user: response_user, orders: [], basket: req.body.basket });
-    } catch {
+    } catch(e) {
+      console.log(e)
       res.status(500).json({ error: "Error with database" });
     }
   }
