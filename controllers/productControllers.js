@@ -46,7 +46,7 @@ const fetchProducts = asyncHandler(async (req, res) => {
   // console.log('Products fetched')
   if (req.query['seller']){
     const decoded = jwt.verify(req.query['seller'], process.env.JWT_SECRET)
-    const sellerProducts = products.filter(product => product.seller.toString()===req.query['seller'])
+    const sellerProducts = products.filter(product => product.seller.toString()===decoded.id)
     console.log(sellerProducts)
     res.status(200).send(sellerProducts)
     return
