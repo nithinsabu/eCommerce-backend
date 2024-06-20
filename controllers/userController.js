@@ -100,7 +100,11 @@ const userLogin = async (req, res) => {
           });
         }
         if (req.body.isSeller) {
-          const products = await Product.find({seller: user._id})
+          const products = await Product.find({seller: user._id}).lean()
+          for (let i = 0; i<products.length; ++i){
+            products[i].id = products[i]._id.toString()
+            delete products[i]._id
+          }
           res.status(200).json({ success: true, user: response_user , products: products});
         } else {
           res
