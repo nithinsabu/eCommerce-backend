@@ -25,6 +25,7 @@ const fetchProducts = asyncHandler(async (req, res) => {
   const products = await Product.find({}).lean();
   for (let i = 0; i < products.length; i++) {
     products[i].id = products[i]._id.toString();
+    delete products[i]._id
     const reviews = [];
     for (const rev of products[i].reviews) {
       // console.log(rev)
@@ -44,15 +45,60 @@ const fetchProducts = asyncHandler(async (req, res) => {
   // })
   // console.log(products[0])
   // console.log('Products fetched')
-  if (req.query['seller']){
-    const decoded = jwt.verify(req.query['seller'], process.env.JWT_SECRET)
+  if (req.headers.authorization){
+    try{
+    const decoded = jwt.verify(req.headers.authorization.split(" ")[1], process.env.JWT_SECRET)
     const sellerProducts = products.filter(product => product.seller.toString()===decoded.id)
     // console.log(sellerProducts)
     res.status(200).send(sellerProducts)
+    }catch{
+      res.status(400).send({error: "Unauthorized access"})
+    }
     return
   }
   res.status(200).send(products);
 }
 )
 
-module.exports = { uploadDummyProducts, fetchProducts };
+const editProduct = asyncHandler(async (req, res) => {
+  try{
+    const decoded = jwt.verify(req.headers.authorization.split(" ")[1], process.env.JWT_SECRET)
+    const userID = new mongoose.Types.ObjectId(decoded.id)
+    const request = req.query['request']
+    console.log(request)
+    if (request==='ADD'){
+      console.log(req.body)
+      const product = req.body
+      product.seller = userID
+      await Product.create(product)
+    }
+    if (request === 'DELETE') {
+      const productId = req.query['id'];
+      console.log(productId)
+      await Product.findByIdAndDelete(new mongoose.Types.ObjectId(productId));
+    }
+    if (request==='UPDATE'){
+      let { reviews, dateAdded, rating, seller, __v, id, ...newProduct } = req.body;
+      const productId = new mongoose.Types.ObjectId(id)
+      // newProduct.seller = new mongoose.Types.ObjectId(newProduct.seller)
+      console.log(newProduct)
+      await Product.findByIdAndUpdate(productId, newProduct, { new: true });
+    }
+    if (request === 'SET_QUANTITY') {
+      const productId = req.query['id'];
+      const quantity = Number(req.query['quantity']);
+      // console.log(quantity, productId)
+      await Product.findByIdAndUpdate(
+        new mongoose.Types.ObjectId(productId), 
+        { available: quantity },
+      );
+    }
+    
+    res.status(201).json({success: true})
+  }catch{
+    res.status(400).json({error: 'Unauthorized access'})
+  }
+    
+})
+
+module.exports = { uploadDummyProducts, fetchProducts,  editProduct};

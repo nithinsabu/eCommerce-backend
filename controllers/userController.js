@@ -70,7 +70,7 @@ const userLogin = async (req, res) => {
         if (req.body.isSeller) {
           delete response_user.favouriteItems;
         }
-        const cart = req.body.isSeller
+        const cart = !req.body.isSeller
           ? await Cart.findOne({ user: user._id }).lean()
           : [];
         const basket = cart ? cart.products : [];
@@ -165,7 +165,7 @@ const userSignup = async (req, res) => {
       const token = generateToken(user._id);
       const response_user = {
         displayName: user.name,
-        addresses: [user.addresses],
+        addresses: user.addresses,
         token: token,
         favouriteItems: user.favourites,
         // orders: [],
