@@ -5,6 +5,7 @@ const Order = require("../models/order.js");
 const Product = require("../models/product.js");
 const Review = require("../models/review.js");
 const mongoose = require("mongoose");
+const Seller = require('../models/seller.js')
 const asyncHandler = require("express-async-handler");
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -69,10 +70,14 @@ const userLogin = async (req, res) => {
         };
         if (req.body.isSeller) {
           delete response_user.favouriteItems;
+          delete response_user.paymentMethods
+          delete response_user.currentAddress
+          const seller = await Seller.findOne({user: user._id})
+          response_user.businessName = seller.businessName
         }
         const cart = !req.body.isSeller
           ? await Cart.findOne({ user: user._id }).lean()
-          : [];
+          : null;
         const basket = cart ? cart.products : [];
         for (let i = 0; i < basket.length; ++i) {
           basket[i].id = basket[i].product.toString();
@@ -152,10 +157,14 @@ const userSignup = async (req, res) => {
         email: req.body.email,
         password: req.body.password,
         phone: req.body.phone,
-        // addresses: [req.body.address],
+        addresses: req.body.address? [req.body.address]: [],
         favourites: favourites,
         role: req.body.isSeller ? "seller" : "buyer",
+        currentAddress: req.body.isSeller? 0: -1,
       });
+      if (req.body.isSeller){
+        await Seller.create({user: user._id, businessName: req.body.businessName})
+      }
       const basket = !req.body.isSeller
         ? await Cart.create({
             user: user._id,
@@ -176,6 +185,9 @@ const userSignup = async (req, res) => {
       };
       if (req.body.isSeller) {
         delete response_user.favouriteItems;
+        delete response_user.currentAddress;
+        delete response_user.paymentMethods
+        response_user.businessName = req.body.businessName;
         res.status(201).json({ success: true, user: response_user });
         return;
       }
