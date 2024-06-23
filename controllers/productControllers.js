@@ -4,6 +4,10 @@ const Review = require("../models/review.js");
 const User = require("../models/user.js");
 const jwt = require('jsonwebtoken')
 const asyncHandler = require('express-async-handler')
+const multer = require('multer')
+const path = require('path')
+const fs = require('fs')
+
 const uploadDummyProducts = async (req, res) => {
   // console.log(req.body.products[0]);
   const products = req.body.products;
@@ -67,10 +71,16 @@ const editProduct = asyncHandler(async (req, res) => {
     const request = req.query['request']
     console.log(request)
     if (request==='ADD'){
-      console.log(req.body)
+      // console.log(req.body)
       const product = req.body
       product.seller = userID
-      await Product.create(product)
+      const dbProduct_temp = await Product.create(product)
+      const dbProduct = dbProduct_temp.toObject()
+      dbProduct.id = dbProduct._id.toString()
+      delete dbProduct._id
+      delete dbProduct.__v
+      res.status(201).send(dbProduct)
+      return
     }
     if (request === 'DELETE') {
       const productId = req.query['id'];
@@ -95,10 +105,28 @@ const editProduct = asyncHandler(async (req, res) => {
     }
     
     res.status(201).json({success: true})
-  }catch{
+  }catch(e){
+    console.log(e)
     res.status(400).json({error: 'Unauthorized access'})
   }
     
 })
 
-module.exports = { uploadDummyProducts, fetchProducts,  editProduct};
+
+const uploadImage = asyncHandler(async(req, res) => {
+  try {
+    const files = req.files;
+    console.log('Uploaded files:', files);
+    
+    // Construct URLs for uploaded files
+    const urls = files.map(file => (`/uploads/${file.filename}` ));
+
+    // Send URLs back to client
+    res.status(200).send(urls);
+  } catch (error) {
+    console.error('Error uploading files:', error);
+    res.status(500).json({ error: 'Failed to upload files' });
+  }
+}
+)
+module.exports = { uploadDummyProducts, fetchProducts,  editProduct, uploadImage};
