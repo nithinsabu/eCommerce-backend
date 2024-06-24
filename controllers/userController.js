@@ -14,6 +14,7 @@ const generateToken = (id) => {
 };
 
 const userLogin = async (req, res) => {
+  console.log('hi')
   const user = await User.findOne({ email: req.body.email });
   console.log(req.body.email);
   if (
