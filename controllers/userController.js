@@ -396,7 +396,7 @@ const checkout = asyncHandler(async (req, res) => {
       orderAmount: orderAmount,
     });
     res.status(201).json({ success: true });
-  } catch {
+  } catch(e) {
     console.log(e);
     if (
       e.message === "Server not responding" ||
