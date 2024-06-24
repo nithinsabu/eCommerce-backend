@@ -28,8 +28,9 @@ const productSchema = new mongoose.Schema({
     default: [],
   },
   specifications: {
-    type: Object,
-    default: {},
+    type: Map,
+    of: String,
+    default: new Map(),
   },
 
   //   minQuantity: {

@@ -58,7 +58,6 @@ const fetchProducts = asyncHandler(async (req, res) => {
       const sellerProducts = products.filter(
         (product) => product.seller.toString() === decoded.id
       );
-      // console.log(sellerProducts)
       res.status(200).send(sellerProducts);
     } catch {
       res.status(400).send({ error: "Unauthorized access" });
@@ -81,7 +80,7 @@ const editProduct = asyncHandler(async (req, res) => {
       // console.log(req.body)
       const product = req.body;
       product.seller = userID; // Assuming userID is available in the context
-
+      // console.log(product.specifications)
       const dbProduct_temp = await Product.create(product);
       const dbProduct = dbProduct_temp.toObject();
       const productId = dbProduct._id.toString();
@@ -122,7 +121,7 @@ const editProduct = asyncHandler(async (req, res) => {
         req.body;
       const productId = new mongoose.Types.ObjectId(id);
       // newProduct.seller = new mongoose.Types.ObjectId(newProduct.seller)
-      console.log(newProduct);
+      // console.log(newProduct);
       await Product.findByIdAndUpdate(productId, newProduct, { new: true });
     }
     if (request === "SET_QUANTITY") {
@@ -144,7 +143,7 @@ const editProduct = asyncHandler(async (req, res) => {
 const uploadImage = asyncHandler(async (req, res) => {
   try {
     const files = req.files;
-    console.log("Uploaded files:", files);
+    // console.log("Uploaded files:", files);
 
     // Construct URLs for uploaded files
     const urls = files.map((file) => `/uploads/${file.filename}`);
