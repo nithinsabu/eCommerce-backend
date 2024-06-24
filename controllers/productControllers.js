@@ -119,10 +119,28 @@ const editProduct = asyncHandler(async (req, res) => {
     if (request === "UPDATE") {
       let { reviews, dateAdded, rating, seller, __v, id, ...newProduct } =
         req.body;
-      const productId = new mongoose.Types.ObjectId(id);
       // newProduct.seller = new mongoose.Types.ObjectId(newProduct.seller)
+      const productId = new mongoose.Types.ObjectId(id)
       // console.log(newProduct);
       await Product.findByIdAndUpdate(productId, newProduct, { new: true });
+      const newImageNames = newProduct.images.map((url) => path.basename(url));
+      const uploadDir = path.join(__dirname,'..', 'uploads', id);
+      fs.readdir(uploadDir, (err, files) => {
+        if (err) {
+          console.error('Error reading upload directory:', err);
+          return;
+        }
+        files.forEach((file) => {
+          if (!newImageNames.includes(file)) {
+            const filePath = path.join(uploadDir, file);
+            fs.unlink(filePath, (err) => {
+              if (err) {
+                console.error('Error deleting file:', filePath, err);
+              }
+            });
+          }
+        });
+      });
     }
     if (request === "SET_QUANTITY") {
       const productId = req.query["id"];
@@ -146,8 +164,13 @@ const uploadImage = asyncHandler(async (req, res) => {
     // console.log("Uploaded files:", files);
 
     // Construct URLs for uploaded files
-    const urls = files.map((file) => `/uploads/${file.filename}`);
-
+    let urls = files.map((file) => `/uploads/${file.filename}`);
+    // console.log(urls)
+    // console.log(req.query['id'])
+    if (req.query['id']){
+      urls = files.map((file) => `/uploads/${req.query['id']}/${file.filename}`)
+    }
+    // console.log(urls)
     // Send URLs back to client
     res.status(200).send(urls);
   } catch (error) {
