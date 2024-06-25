@@ -74,6 +74,34 @@ const fetchProducts = asyncHandler(async (req, res) => {
   res.status(200).send(products);
 });
 
+const fetchReviews = asyncHandler(async (req, res) => {
+    const product = req.query['product']
+    // console.log(product)
+    const reviews = await Review.find({product: new mongoose.Types.ObjectId(product)}).lean()
+    for (let i = 0; i<reviews.length; ++i){
+      // reviews[i].reviewer = await User.findById(new mongoose.Types.ObjectId(reviews[i].reviewer)).name
+      delete reviews[i].product
+      reviews[i].id = reviews[i]._id
+      delete reviews[i]._id
+      delete reviews[i].__v
+    }
+    let user = ''
+    const response ={reviews: reviews}
+    try{
+      const token = req.headers.authorization.split(" ")[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      user = decoded.id
+      response.userReview = reviews.find(review => review.reviewer.toString()===user)
+    }catch(E){
+      // console.log(E)
+    }
+    for (let i = 0; i<reviews.length; ++i){
+      const reviewer = await User.findById(new mongoose.Types.ObjectId(reviews[i].reviewer))
+      if (reviewer) reviews[i].reviewer = reviewer.name
+    }
+    res.status(200).json(response)
+})
+
 const editProduct = asyncHandler(async (req, res) => {
   try {
     const decoded = jwt.verify(
@@ -204,4 +232,5 @@ module.exports = {
   fetchProducts,
   editProduct,
   uploadImage,
+  fetchReviews
 };

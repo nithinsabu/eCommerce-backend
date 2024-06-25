@@ -6,6 +6,7 @@ const path = require('path')
 const userRouter = require('./routes/user.js')
 const productRouter = require('./routes/product.js')
 const sellerRouter = require('./routes/seller.js')
+const reviewRouter = require('./routes/review.js')
 const dbConnect = require('./dbConnect.js')
 
 
@@ -20,6 +21,7 @@ app.use(express.json())
 app.use('/user', userRouter)
 app.use('/product', productRouter)
 app.use('/seller', sellerRouter)
+app.use('/review', reviewRouter)
 app.use('/uploads', express.static(path.join(__dirname,'uploads')))
 app.listen(process.env.PORT, () => {
     console.log("listening on port "+process.env.PORT)

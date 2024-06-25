@@ -14,7 +14,6 @@ const generateToken = (id) => {
 };
 
 const userLogin = async (req, res) => {
-  console.log('hi')
   const user = await User.findOne({ email: req.body.email });
   console.log(req.body.email);
   if (
@@ -211,8 +210,9 @@ const userSignup = async (req, res) => {
 };
 
 const getDetails = async (req, res) => {
-  const token = req.headers.authorization.split(" ")[1];
   try {
+  const token = req.headers.authorization.split(" ")[1];
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const objectId = new mongoose.Types.ObjectId(decoded.id);
     const user = await User.findById(objectId);

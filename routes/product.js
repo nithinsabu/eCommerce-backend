@@ -2,7 +2,7 @@ const express = require('express')
 const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
-const { uploadDummyProducts, fetchProducts, editProduct, uploadImage } = require('./../controllers/productControllers')
+const { uploadDummyProducts, fetchProducts, editProduct, uploadImage, fetchReviews } = require('./../controllers/productControllers')
 const uploadDir = path.join(__dirname,'..','uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -30,5 +30,5 @@ router.post('/uploaddummyproducts', uploadDummyProducts)
 router.get('/fetchproducts', fetchProducts)
 router.post('/editproduct', editProduct)
 router.post('/uploadimages', createUploadDir, upload.array('image', 5), uploadImage);
-
+router.get('/fetchreviews', fetchReviews)
 module.exports = router
