@@ -60,6 +60,7 @@ const userLogin = async (req, res) => {
           }
         }
         const response_user = {
+          id: user.id,
           displayName: user.name,
           addresses: user.addresses,
           token: token,
@@ -174,6 +175,7 @@ const userSignup = async (req, res) => {
         : [];
       const token = generateToken(user._id);
       const response_user = {
+        id: user.id,
         displayName: user.name,
         addresses: user.addresses,
         token: token,
