@@ -7,7 +7,7 @@ const asyncHandler = require("express-async-handler");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-
+const uploadDir = path.join(__dirname,'..', 'uploads');
 const uploadDummyProducts = async (req, res) => {
   // console.log(req.body.products[0]);
   const products = req.body.products;
@@ -114,7 +114,9 @@ const editProduct = asyncHandler(async (req, res) => {
     if (request === "DELETE") {
       const productId = req.query["id"];
       console.log(productId);
+      
       await Product.findByIdAndDelete(new mongoose.Types.ObjectId(productId));
+
     }
     if (request === "UPDATE") {
       let { reviews, dateAdded, rating, seller, __v, id, ...newProduct } =
@@ -124,15 +126,15 @@ const editProduct = asyncHandler(async (req, res) => {
       // console.log(newProduct);
       await Product.findByIdAndUpdate(productId, newProduct, { new: true });
       const newImageNames = newProduct.images.map((url) => path.basename(url));
-      const uploadDir = path.join(__dirname,'..', 'uploads', id);
-      fs.readdir(uploadDir, (err, files) => {
+      const newDir = path.join(uploadDir, id)
+      fs.readdir(newDir, (err, files) => {
         if (err) {
           console.error('Error reading upload directory:', err);
           return;
         }
         files.forEach((file) => {
           if (!newImageNames.includes(file)) {
-            const filePath = path.join(uploadDir, file);
+            const filePath = path.join(newDir, file);
             fs.unlink(filePath, (err) => {
               if (err) {
                 console.error('Error deleting file:', filePath, err);

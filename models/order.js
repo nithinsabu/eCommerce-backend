@@ -58,6 +58,10 @@ const orderSchema = new mongoose.Schema({
         type: Date,
         default: Date.now()
     },
+    deliveryDate: {
+      type: Date,
+      default: Date.now(),
+    },
     orderAmount: {
         type: Number,
         default: 0

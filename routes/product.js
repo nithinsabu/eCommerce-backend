@@ -2,7 +2,6 @@ const express = require('express')
 const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
-const formidable = require('formidable')
 const { uploadDummyProducts, fetchProducts, editProduct, uploadImage } = require('./../controllers/productControllers')
 const uploadDir = path.join(__dirname,'..','uploads');
 if (!fs.existsSync(uploadDir)) {
