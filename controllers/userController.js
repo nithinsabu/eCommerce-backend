@@ -85,7 +85,7 @@ const userLogin = async (req, res) => {
           delete basket[i].product;
         }
         // console.log(basket)
-        const orders = req.body.isSeller
+        const orders = !req.body.isSeller
           ? await Order.find({ user: user._id })
           : [];
         // response_user.orders = orders;

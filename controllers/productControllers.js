@@ -7,9 +7,11 @@ const asyncHandler = require("express-async-handler");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const uploadDir = path.join(__dirname,'..', 'uploads');
+const uploadDir = path.join(__dirname, "..", "uploads");
+
 const uploadDummyProducts = async (req, res) => {
   // console.log(req.body.products[0]);
+  // fs.rmdirSync(path.join(uploadDir, '667a7c21df8fc2b009574f7d'), { recursive: true, force: true })
   const products = req.body.products;
   products.forEach(async (product) => {
     const { id, reviews, seller, ...dbProduct } = product;
@@ -98,38 +100,48 @@ const editProduct = asyncHandler(async (req, res) => {
       if (!fs.existsSync(productDir)) {
         fs.mkdirSync(productDir, { recursive: true });
       }
-      const newImageURLs = []
+      const newImageURLs = [];
       filenames.forEach((filename) => {
         const oldPath = path.join(__dirname, "..", "uploads", filename);
         const newPath = path.join(productDir, filename);
-        newImageURLs.push(`${process.env.UPLOAD_URL}/${productId}/${filename}`)
+        newImageURLs.push(`${process.env.UPLOAD_URL}/${productId}/${filename}`);
         fs.renameSync(oldPath, newPath);
-      }); 
-      dbProduct.images = newImageURLs
-      dbProduct_temp.images = newImageURLs
-      await dbProduct_temp.save()
+      });
+      dbProduct.images = newImageURLs;
+      dbProduct_temp.images = newImageURLs;
+      await dbProduct_temp.save();
       res.status(201).send(dbProduct);
       return;
     }
     if (request === "DELETE") {
       const productId = req.query["id"];
-      console.log(productId);
-      
+      // console.log(productId);
       await Product.findByIdAndDelete(new mongoose.Types.ObjectId(productId));
-
+      const deleteFolder = path.join(uploadDir, productId);
+      console.log(deleteFolder)
+      try {
+        fs.accessSync(deleteFolder);
+        fs.rmSync(deleteFolder, { recursive: true});
+      } catch (error) {
+        if (error.code === "ENOENT") {
+          console.log(`Folder not found: ${deleteFolder}`);
+        } else {
+          console.error(`Error deleting folder: ${error.message}`);
+        }
+      }
     }
     if (request === "UPDATE") {
       let { reviews, dateAdded, rating, seller, __v, id, ...newProduct } =
         req.body;
       // newProduct.seller = new mongoose.Types.ObjectId(newProduct.seller)
-      const productId = new mongoose.Types.ObjectId(id)
+      const productId = new mongoose.Types.ObjectId(id);
       // console.log(newProduct);
       await Product.findByIdAndUpdate(productId, newProduct, { new: true });
       const newImageNames = newProduct.images.map((url) => path.basename(url));
-      const newDir = path.join(uploadDir, id)
+      const newDir = path.join(uploadDir, id);
       fs.readdir(newDir, (err, files) => {
         if (err) {
-          console.error('Error reading upload directory:', err);
+          console.error("Error reading upload directory:", err);
           return;
         }
         files.forEach((file) => {
@@ -137,7 +149,7 @@ const editProduct = asyncHandler(async (req, res) => {
             const filePath = path.join(newDir, file);
             fs.unlink(filePath, (err) => {
               if (err) {
-                console.error('Error deleting file:', filePath, err);
+                console.error("Error deleting file:", filePath, err);
               }
             });
           }
@@ -169,8 +181,10 @@ const uploadImage = asyncHandler(async (req, res) => {
     let urls = files.map((file) => `/uploads/${file.filename}`);
     // console.log(urls)
     // console.log(req.query['id'])
-    if (req.query['id']){
-      urls = files.map((file) => `/uploads/${req.query['id']}/${file.filename}`)
+    if (req.query["id"]) {
+      urls = files.map(
+        (file) => `/uploads/${req.query["id"]}/${file.filename}`
+      );
     }
     // console.log(urls)
     // Send URLs back to client
