@@ -17,12 +17,13 @@ const uploadDummyProducts = async (req, res) => {
     const { id, reviews, seller, ...dbProduct } = product;
     dbProduct.reviews = [];
     dbProduct.seller = new mongoose.Types.ObjectId("666ac60880e5ffa2606b9fcc");
+    const dp = await Product.create(dbProduct);
     for (const rev of reviews) {
       rev.reviewer = new mongoose.Types.ObjectId("666ac60880e5ffa2606b9fcc");
+      rev.product = dp._id
       const dr = await Review.create(rev);
-      dbProduct.reviews.push(dr._id);
+      // dbProduct.reviews.push(dr._id);
     }
-    const dp = await Product.create(dbProduct);
   });
   res.send("");
 };
@@ -32,15 +33,19 @@ const fetchProducts = asyncHandler(async (req, res) => {
   for (let i = 0; i < products.length; i++) {
     products[i].id = products[i]._id.toString();
     delete products[i]._id;
-    const reviews = [];
-    for (const rev of products[i].reviews) {
-      // console.log(rev)
-      const review = await Review.findById(rev).lean();
-      const user = await User.findById(review.reviewer);
-      review.reviewer = user?.name;
-      review.id = review._id.toString();
-      delete review._id;
-      reviews.push(review);
+    // const reviews = [];
+    // for (const rev of products[i].reviews) {
+    //   // console.log(rev)
+    //   const review = await Review.findById(rev).lean();
+    //   const user = await User.findById(review.reviewer);
+    //   review.reviewer = user?.name;
+    //   review.id = review._id.toString();
+    //   delete review._id;
+    //   reviews.push(review);
+    // }
+    const reviews = await  Review.find({product: new mongoose.Types.ObjectId(products[i].id)}).lean()
+    for (let i = 0; i<reviews.length; ++i){
+      reviews[i].reviewer = await User.findById(new mongoose.Types.ObjectId(reviews[i].reviewer)).name
     }
     products[i].reviews = reviews;
   }
