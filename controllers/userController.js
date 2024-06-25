@@ -396,6 +396,7 @@ const checkout = asyncHandler(async (req, res) => {
       paymentDetails: "",
       orderAmount: orderAmount,
     });
+    await Cart.findOneAndUpdate({user: user._id}, {products: []})
     res.status(201).json({ success: true });
   } catch(e) {
     console.log(e);
