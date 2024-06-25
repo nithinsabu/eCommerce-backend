@@ -385,7 +385,7 @@ const checkout = asyncHandler(async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(new mongoose.Types.ObjectId(decoded.id));
     if (!user) throw new Error("Server not responding");
-    if (user.currentAddress < 0) {
+    if (!user.currentAddress < 0) {
       throw new Error("Address not selected");
     }
     const shippingAddress = user.addresses[user.currentAddress];

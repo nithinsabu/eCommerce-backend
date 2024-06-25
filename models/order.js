@@ -68,6 +68,10 @@ const orderSchema = new mongoose.Schema({
     },
     paymentDetails: {
         type: String
+    },
+    orderStatus:{
+      type: Number,
+      default: -1
     }
 })
 
