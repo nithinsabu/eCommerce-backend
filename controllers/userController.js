@@ -413,49 +413,49 @@ const checkout = asyncHandler(async (req, res) => {
   }
 });
 
-const editReview = asyncHandler(async (req, res) => {
-  try {
-    const token = req.headers.authorization.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const reviewer = await User.findById(
-      new mongoose.Types.ObjectId(decoded.id)
-    );
+// const editReview = asyncHandler(async (req, res) => {
+//   try {
+//     const token = req.headers.authorization.split(" ")[1];
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//     const reviewer = await User.findById(
+//       new mongoose.Types.ObjectId(decoded.id)
+//     );
 
-    const product = await Product.findOne({
-      _id: new mongoose.Types.ObjectId(req.query["product"]),
-    });
-    if (!reviewer || !product) {
-      throw new Error("Error with server");
-    }
-    let oldReview = false;
-    for (const rev of product.reviews) {
-      const review = await Review.findbyId(rev);
-      if (review.reviewer.toString() === reviewer._id.toString()) {
-        oldReview = review;
-      }
-    }
-    if (oldReview) {
-      oldReview.comment = req.body.comment;
-      oldReview.rating = req.body.rating;
-      oldReview.date = Date.now();
-    } else {
-      oldReview = Review.create({
-        reviewer: reviewer._id,
-        comment: req.body.comment,
-        rating: req.body.rating,
-        date: Date.now(),
-      });
-    }
-    await oldReview.save();
-    res.status(201).json({ success: true });
-  } catch (e) {
-    if (e.message === "Error with server") {
-      res.status(500).json({ error: e.message });
-      return;
-    }
-    res.status(401).json({ error: "Unauthorized access" });
-  }
-});
+//     const product = await Product.findOne({
+//       _id: new mongoose.Types.ObjectId(req.query["product"]),
+//     });
+//     if (!reviewer || !product) {
+//       throw new Error("Error with server");
+//     }
+//     let oldReview = false;
+//     for (const rev of product.reviews) {
+//       const review = await Review.findbyId(rev);
+//       if (review.reviewer.toString() === reviewer._id.toString()) {
+//         oldReview = review;
+//       }
+//     }
+//     if (oldReview) {
+//       oldReview.comment = req.body.comment;
+//       oldReview.rating = req.body.rating;
+//       oldReview.date = Date.now();
+//     } else {
+//       oldReview = Review.create({
+//         reviewer: reviewer._id,
+//         comment: req.body.comment,
+//         rating: req.body.rating,
+//         date: Date.now(),
+//       });
+//     }
+//     await oldReview.save();
+//     res.status(201).json({ success: true });
+//   } catch (e) {
+//     if (e.message === "Error with server") {
+//       res.status(500).json({ error: e.message });
+//       return;
+//     }
+//     res.status(401).json({ error: "Unauthorized access" });
+//   }
+// });
 module.exports = {
   userLogin,
   userSignup,
