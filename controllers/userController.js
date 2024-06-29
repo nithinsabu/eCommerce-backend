@@ -214,6 +214,7 @@ const userSignup = async (req, res) => {
 const fetchUser = async (req, res) => {
   try {
     const token = req.headers.authorization.split(" ")[1];
+    // console.log(token)
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(new mongoose.Types.ObjectId(decoded.id)).lean();
     const response_user = user;
@@ -224,8 +225,20 @@ const fetchUser = async (req, res) => {
     delete response_user.password
     delete response_user.role
     delete response_user.isVerified
-    res.status(200).json(response_user);
-  } catch {
+    response_user.token = token
+    const favouriteItems = user.favourites
+    delete response_user.favourites
+    const cart = await Cart.findOne({user: new mongoose.Types.ObjectId(user.id)}).lean()
+    console.log(cart)
+    const basket = cart.products
+    for (let i = 0; i<basket.length; ++i){
+      basket[i].id = basket[i].product
+      delete basket[i]._id
+      delete basket[i].product
+    }
+    res.status(200).json({user: response_user, favouriteItems: favouriteItems, basket: basket});
+  } catch (e){
+    console.log(e)
     res.status(401).json({ error: "Invalid token" });
   }
 };
