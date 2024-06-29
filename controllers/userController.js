@@ -216,29 +216,44 @@ const fetchUser = async (req, res) => {
     const token = req.headers.authorization.split(" ")[1];
     // console.log(token)
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(new mongoose.Types.ObjectId(decoded.id)).lean();
+    const user = await User.findById(
+      new mongoose.Types.ObjectId(decoded.id)
+    ).lean();
     const response_user = user;
     response_user.displayName = user.name;
-    response_user.id = response_user._id
-    delete response_user._id
-    delete response_user.__v
-    delete response_user.password
-    delete response_user.role
-    delete response_user.isVerified
-    response_user.token = token
-    const favouriteItems = user.favourites
-    delete response_user.favourites
-    const cart = await Cart.findOne({user: new mongoose.Types.ObjectId(user.id)}).lean()
-    console.log(cart)
-    const basket = cart.products
-    for (let i = 0; i<basket.length; ++i){
-      basket[i].id = basket[i].product
-      delete basket[i]._id
-      delete basket[i].product
+    response_user.id = response_user._id;
+    delete response_user._id;
+    delete response_user.__v;
+    delete response_user.password;
+    delete response_user.role;
+    delete response_user.isVerified;
+    response_user.token = token;
+    const favouriteItems = user.favourites;
+    delete response_user.favourites;
+    if (!req.query.isSeller) {
+      const cart = await Cart.findOne({
+        user: new mongoose.Types.ObjectId(user.id),
+      }).lean();
+      const basket = cart.products;
+      for (let i = 0; i < basket.length; ++i) {
+        basket[i].id = basket[i].product;
+        delete basket[i]._id;
+        delete basket[i].product;
+      }
+      res
+        .status(200)
+        .json({
+          user: response_user,
+        });
+    }else{
+      delete response_user.currentAddress
+      delete response_user.paymentMethods
+      res.status(200).json({
+        user: response_user,
+      });
     }
-    res.status(200).json({user: response_user, favouriteItems: favouriteItems, basket: basket});
-  } catch (e){
-    console.log(e)
+  } catch (e) {
+    console.log(e);
     res.status(401).json({ error: "Invalid token" });
   }
 };
@@ -419,7 +434,7 @@ const placeOrder = asyncHandler(async (req, res) => {
       orderAmount: orderAmount,
       orderDate: Date.now(),
     });
-    console.log(order.orderDate)
+    console.log(order.orderDate);
     for (const item of basket) {
       const product = await Product.findById(item.product);
       // console.log(product)
@@ -438,7 +453,7 @@ const placeOrder = asyncHandler(async (req, res) => {
               product: item.product,
               productTitle: product.title,
               quantity: item.quantity,
-              price: product.price
+              price: product.price,
             },
           ],
           order: order._id,
@@ -454,16 +469,17 @@ const placeOrder = asyncHandler(async (req, res) => {
           paymentMethod: "", // Replace with actual payment method
           orderStatus: -1,
           amount: item.quantity * product.price,
-          orderDate: order.orderDate
+          orderDate: order.orderDate,
         });
       } else {
         seller.sellingHistory[existingOrderIndex].products.push({
           product: item.product,
           productTitle: product.title,
           quantity: item.quantity,
-          price: product.price
+          price: product.price,
         });
-        seller.sellingHistory[existingOrderIndex].amount+= item.quantity * product.price
+        seller.sellingHistory[existingOrderIndex].amount +=
+          item.quantity * product.price;
       }
       await seller.save();
     }
@@ -527,20 +543,22 @@ const placeOrder = asyncHandler(async (req, res) => {
 // });
 
 const fetchOrders = asyncHandler(async (req, res) => {
-  try{
+  try {
     const token = req.headers.authorization.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const orders = await Order.find({user: new mongoose.Types.ObjectId(decoded.id)}).lean()
-    for (let i = 0; i<orders.length; ++i){
-      orders[i].id = orders[i]._id.toString()
-      delete orders[i]._id
+    const orders = await Order.find({
+      user: new mongoose.Types.ObjectId(decoded.id),
+    }).lean();
+    for (let i = 0; i < orders.length; ++i) {
+      orders[i].id = orders[i]._id.toString();
+      delete orders[i]._id;
     }
-    delete orders.user
-    res.status(200).send(orders)
-  }catch(e){
-    res.status(400).json({error: "Unauthorized access"})
+    delete orders.user;
+    res.status(200).send(orders);
+  } catch (e) {
+    res.status(400).json({ error: "Unauthorized access" });
   }
-})
+});
 module.exports = {
   userLogin,
   userSignup,
@@ -550,5 +568,5 @@ module.exports = {
   editBasket,
   editFavourites,
   placeOrder,
-  fetchOrders
+  fetchOrders,
 };
