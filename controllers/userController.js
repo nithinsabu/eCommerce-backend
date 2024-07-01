@@ -240,14 +240,14 @@ const fetchUser = async (req, res) => {
         delete basket[i]._id;
         delete basket[i].product;
       }
-      res
-        .status(200)
-        .json({
-          user: response_user,
-        });
-    }else{
-      delete response_user.currentAddress
-      delete response_user.paymentMethods
+      res.status(200).json({
+        user: response_user,
+        favouriteItems: favouriteItems,
+        basket: basket
+      });
+    } else {
+      delete response_user.currentAddress;
+      delete response_user.paymentMethods;
       res.status(200).json({
         user: response_user,
       });
